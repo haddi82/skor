@@ -32,9 +32,9 @@ function forskoðaLeik(fixture) {
 }
 
 export default function App() {
+  const [virkurFlip, setVirkurFlip] = useState('heim');
   const [valinFlipa, setValinFlipa] = useState('Allir');
   const [valinnLeikur, setValinnLeikur] = useState(null);
-  const [sýnaStigatafla, setSýnaStigatafla] = useState(false);
   const [leikir, setLeikir] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -83,13 +83,8 @@ export default function App() {
     return <LeikurScreen leikur={valinnLeikur} onTilbaka={() => setValinnLeikur(null)} />;
   }
 
-  if (sýnaStigatafla) {
-    return <StandingsScreen onTilbaka={() => setSýnaStigatafla(false)} />;
-  }
-
   const í_dag_str = new Date().toLocaleDateString('is-IS', { weekday: 'long', day: 'numeric', month: 'long' });
   const á_morgun_str = new Date(Date.now() + 86400000).toLocaleDateString('is-IS', { weekday: 'long', day: 'numeric', month: 'long' });
-
   let síðasteDagur = null;
 
   return (
@@ -98,78 +93,106 @@ export default function App() {
       <View style={styles.header}>
         <Text style={styles.lógó}>Sk<Text style={styles.lógóO}>o</Text>r</Text>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.flipaBar}>
-        {DEILDIR.map(d => (
-          <TouchableOpacity key={d} onPress={() => setValinFlipa(d)} style={[styles.flipa, valinFlipa === d && styles.flipaVakin]}>
-            <Text style={[styles.flipaTekst, valinFlipa === d && styles.flipaTekstVakinn]}>{d}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
 
-      {loading ? (
-        <View style={styles.miðja}>
-          <ActivityIndicator size="large" color="#1D9E75" />
-          <Text style={styles.loadingTekst}>Sæki leiki...</Text>
-        </View>
-      ) : (
-        <ScrollView
-          style={styles.leikirListi}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1D9E75" />}
-        >
-          {síaðirLeikir.length === 0 ? (
+      {/* Aðalinnihald */}
+      {virkurFlip === 'heim' && (
+        <>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.flipaBar}>
+            {DEILDIR.map(d => (
+              <TouchableOpacity key={d} onPress={() => setValinFlipa(d)} style={[styles.flipa, valinFlipa === d && styles.flipaVakin]}>
+                <Text style={[styles.flipaTekst, valinFlipa === d && styles.flipaTekstVakinn]}>{d}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          {loading ? (
             <View style={styles.miðja}>
-              <Text style={styles.loadingTekst}>Engir leikir</Text>
+              <ActivityIndicator size="large" color="#1D9E75" />
+              <Text style={styles.loadingTekst}>Sæki leiki...</Text>
             </View>
           ) : (
-            síaðirLeikir.map(leikur => {
-              const dagur = leikur.dagsetning.toLocaleDateString('is-IS', { weekday: 'long', day: 'numeric', month: 'long' });
-              const sýnaDag = dagur !== síðasteDagur;
-              síðasteDagur = dagur;
-              let dagHeiti = dagur;
-              if (dagur === í_dag_str) dagHeiti = 'Í dag';
-              if (dagur === á_morgun_str) dagHeiti = 'Á morgun';
-              return (
-                <View key={leikur.id}>
-                  {sýnaDag && <Text style={styles.dagHeiti}>{dagHeiti}</Text>}
-                  <TouchableOpacity onPress={() => setValinnLeikur(leikur)}>
-                    <View style={[styles.leikurKort, leikur.staða === 'live' && styles.leikurKortLive]}>
-                      <View style={styles.leikurHaus}>
-                        <Text style={styles.deildNafn}>{leikur.deild}</Text>
-                        <Text style={[styles.stöðuTekst, leikur.staða === 'live' ? styles.liveTekst : styles.lokiðTekst]}>
-                          {leikur.staða === 'live' ? `● ${leikur.tími}` : leikur.tími}
-                        </Text>
-                      </View>
-                      <View style={styles.leikurMiðja}>
-                        <View style={styles.lið}>
-                          <View style={styles.liðLógó}><Text style={styles.liðStafur}>{leikur.heima[0]}</Text></View>
-                          <Text style={styles.liðNafn} numberOfLines={1}>{leikur.heima}</Text>
-                        </View>
-                        <View style={styles.stigBox}>
-                          {leikur.staða === 'óleikinn' ? (
-                            <Text style={styles.óleikinnTími}>{leikur.tími}</Text>
-                          ) : (
-                            <Text style={styles.stig}>{leikur.heimaStig} – {leikur.gestaStig}</Text>
-                          )}
-                        </View>
-                        <View style={[styles.lið, styles.liðHægri]}>
-                          <Text style={[styles.liðNafn, {textAlign:'right'}]} numberOfLines={1}>{leikur.gestir}</Text>
-                          <View style={styles.liðLógó}><Text style={styles.liðStafur}>{leikur.gestir[0]}</Text></View>
-                        </View>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
+            <ScrollView
+              style={styles.leikirListi}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1D9E75" />}
+            >
+              {síaðirLeikir.length === 0 ? (
+                <View style={styles.miðja}>
+                  <Text style={styles.loadingTekst}>Engir leikir</Text>
                 </View>
-              );
-            })
+              ) : (
+                síaðirLeikir.map(leikur => {
+                  const dagur = leikur.dagsetning.toLocaleDateString('is-IS', { weekday: 'long', day: 'numeric', month: 'long' });
+                  const sýnaDag = dagur !== síðasteDagur;
+                  síðasteDagur = dagur;
+                  let dagHeiti = dagur;
+                  if (dagur === í_dag_str) dagHeiti = 'Í dag';
+                  if (dagur === á_morgun_str) dagHeiti = 'Á morgun';
+                  return (
+                    <View key={leikur.id}>
+                      {sýnaDag && <Text style={styles.dagHeiti}>{dagHeiti}</Text>}
+                      <TouchableOpacity onPress={() => setValinnLeikur(leikur)}>
+                        <View style={[styles.leikurKort, leikur.staða === 'live' && styles.leikurKortLive]}>
+                          <View style={styles.leikurHaus}>
+                            <Text style={styles.deildNafn}>{leikur.deild}</Text>
+                            <Text style={[styles.stöðuTekst, leikur.staða === 'live' ? styles.liveTekst : styles.lokiðTekst]}>
+                              {leikur.staða === 'live' ? `● ${leikur.tími}` : leikur.tími}
+                            </Text>
+                          </View>
+                          <View style={styles.leikurMiðja}>
+                            <View style={styles.lið}>
+                              <View style={styles.liðLógó}><Text style={styles.liðStafur}>{leikur.heima[0]}</Text></View>
+                              <Text style={styles.liðNafn} numberOfLines={1}>{leikur.heima}</Text>
+                            </View>
+                            <View style={styles.stigBox}>
+                              {leikur.staða === 'óleikinn' ? (
+                                <Text style={styles.óleikinnTími}>{leikur.tími}</Text>
+                              ) : (
+                                <Text style={styles.stig}>{leikur.heimaStig} – {leikur.gestaStig}</Text>
+                              )}
+                            </View>
+                            <View style={[styles.lið, styles.liðHægri]}>
+                              <Text style={[styles.liðNafn, {textAlign:'right'}]} numberOfLines={1}>{leikur.gestir}</Text>
+                              <View style={styles.liðLógó}><Text style={styles.liðStafur}>{leikur.gestir[0]}</Text></View>
+                            </View>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
           )}
-        </ScrollView>
+        </>
       )}
 
+      {virkurFlip === 'tafla' && (
+        <StandingsScreen />
+      )}
+
+      {virkurFlip === 'dagskra' && (
+        <View style={styles.miðja}>
+          <Text style={styles.loadingTekst}>Dagskrá – kemur bráðlega</Text>
+        </View>
+      )}
+
+      {virkurFlip === 'minir' && (
+        <View style={styles.miðja}>
+          <Text style={styles.loadingTekst}>Mínir leikir – kemur bráðlega</Text>
+        </View>
+      )}
+
+      {virkurFlip === 'stillingar' && (
+        <View style={styles.miðja}>
+          <Text style={styles.loadingTekst}>Stillingar – kemur bráðlega</Text>
+        </View>
+      )}
+
+      {/* Neðri stika – alltaf til staðar */}
       <View style={styles.neðriFlipir}>
-        {[['🏠','Heim'],['📊','Tafla'],['📅','Dagskrá'],['⭐','Mínir'],['⚙️','Stillingar']].map(([icon, nafn]) => (
-          <TouchableOpacity key={nafn} style={styles.neðriFlip} onPress={() => nafn === 'Tafla' && setSýnaStigatafla(true)}>
-            <Text style={styles.neðriIcon}>{icon}</Text>
-            <Text style={styles.neðriTekst}>{nafn}</Text>
+        {[['🏠','Heim','heim'],['📊','Tafla','tafla'],['📅','Dagskrá','dagskra'],['⭐','Mínir','minir'],['⚙️','Stillingar','stillingar']].map(([icon, nafn, lykill]) => (
+          <TouchableOpacity key={lykill} style={styles.neðriFlip} onPress={() => setVirkurFlip(lykill)}>
+            <Text style={[styles.neðriIcon, virkurFlip === lykill && styles.neðriIconVirkur]}>{icon}</Text>
+            <Text style={[styles.neðriTekst, virkurFlip === lykill && styles.neðriTekstVirkur]}>{nafn}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -210,5 +233,7 @@ const styles = StyleSheet.create({
   neðriFlipir: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 10, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)', paddingBottom: 20 },
   neðriFlip: { alignItems: 'center', gap: 3 },
   neðriIcon: { fontSize: 20 },
+  neðriIconVirkur: { },
   neðriTekst: { color: 'rgba(255,255,255,0.4)', fontSize: 10 },
+  neðriTekstVirkur: { color: '#1D9E75', fontWeight: '600' },
 });
