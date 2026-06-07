@@ -1,6 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useState } from 'react';
+import LeikurScreen from './screens/LeikurScreen';
+import StandingsScreen from './screens/StandingsScreen';
 
 const DEILDIR = ['Allt', 'Ísland', 'EPL', 'NBA', 'Handbolti'];
 
@@ -16,30 +18,16 @@ const LEIKIR = [
 export default function App() {
   const [valinDeild, setValinDeild] = useState('Allt');
   const [valinnLeikur, setValinnLeikur] = useState(null);
+  const [sýnaStigatafla, setSýnaStigatafla] = useState(false);
 
   const síaðirLeikir = valinDeild === 'Allt' ? LEIKIR : LEIKIR.filter(l => l.deild === valinDeild);
 
   if (valinnLeikur) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar style="light" />
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setValinnLeikur(null)}>
-            <Text style={styles.tilbaka}>← Til baka</Text>
-          </TouchableOpacity>
-          <Text style={styles.deildNafnHeader}>{valinnLeikur.deild}</Text>
-        </View>
-        <View style={styles.leikurSíða}>
-          <View style={styles.stigaKort}>
-            <Text style={styles.stigStór}>{valinnLeikur.staða === 'óleikinn' ? valinnLeikur.tími : `${valinnLeikur.heimaStig} – ${valinnLeikur.gestaStig}`}</Text>
-            <View style={styles.liðirRow}>
-              <Text style={styles.liðNafnStór}>{valinnLeikur.heima}</Text>
-              <Text style={styles.liðNafnStór}>{valinnLeikur.gestir}</Text>
-            </View>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
+    return <LeikurScreen leikur={valinnLeikur} onTilbaka={() => setValinnLeikur(null)} />;
+  }
+
+  if (sýnaStigatafla) {
+    return <StandingsScreen onTilbaka={() => setSýnaStigatafla(false)} />;
   }
 
   return (
@@ -88,7 +76,7 @@ export default function App() {
       </ScrollView>
       <View style={styles.neðriFlipir}>
         {[['🏠','Heim'],['📊','Tafla'],['📅','Dagskrá'],['⭐','Mínir'],['⚙️','Stillingar']].map(([icon, nafn]) => (
-          <TouchableOpacity key={nafn} style={styles.neðriFlip}>
+          <TouchableOpacity key={nafn} style={styles.neðriFlip} onPress={() => nafn === 'Tafla' && setSýnaStigatafla(true)}>
             <Text style={styles.neðriIcon}>{icon}</Text>
             <Text style={styles.neðriTekst}>{nafn}</Text>
           </TouchableOpacity>
@@ -103,13 +91,6 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   lógó: { fontSize: 28, fontWeight: '600', color: '#fff' },
   lógóO: { color: '#1D9E75' },
-  tilbaka: { color: '#1D9E75', fontSize: 16 },
-  deildNafnHeader: { color: 'rgba(255,255,255,0.4)', fontSize: 13 },
-  leikurSíða: { flex: 1, padding: 16 },
-  stigaKort: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 32, alignItems: 'center' },
-  stigStór: { color: '#fff', fontSize: 48, fontWeight: '700', marginBottom: 16 },
-  liðirRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
-  liðNafnStór: { color: '#fff', fontSize: 16, fontWeight: '500' },
   flipaBar: { paddingHorizontal: 12, paddingBottom: 10, flexGrow: 0 },
   flipa: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20, marginHorizontal: 4, backgroundColor: 'rgba(255,255,255,0.08)' },
   flipaVakin: { backgroundColor: '#1D9E75' },
