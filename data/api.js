@@ -9,7 +9,7 @@ export const DEILDIR = {
   women: { id: 671, nafn: 'Úrvalsdeild W', land: '🇮🇸' },
 };
 
-export async function sækjaLeiki(leagueId, season = 2025) {
+export async function sækjaLeiki(leagueId, season = 2026) {
   const res = await fetch(`${BASE_URL}/fixtures?league=${leagueId}&season=${season}`, {
     headers: { 'x-apisports-key': API_KEY }
   });
@@ -17,7 +17,7 @@ export async function sækjaLeiki(leagueId, season = 2025) {
   return data.response;
 }
 
-export async function sækjaStigatoflu(leagueId, season = 2025) {
+export async function sækjaStigatoflu(leagueId, season = 2026) {
   const res = await fetch(`${BASE_URL}/standings?league=${leagueId}&season=${season}`, {
     headers: { 'x-apisports-key': API_KEY }
   });
