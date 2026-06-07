@@ -1,10 +1,12 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
-import { useState } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator } from 'react-native';
+import { useState, useEffect } from 'react';
+
+const API_SPORTS_KEY = '95c658499c779d22042a924ae8610a0a';
 
 const DEILDIR = ['Allt', 'Ísland', 'EPL', 'NBA', 'Handbolti'];
 
-const LEIKIR = [
+const GERVILEIKIR = [
   { id: 1, deild: 'Ísland', heima: 'Víkingur', gestir: 'KR', heimaStig: 2, gestaStig: 1, staða: 'live', tími: "64'" },
   { id: 2, deild: 'Ísland', heima: 'Breiðablik', gestir: 'Stjarnan', heimaStig: 3, gestaStig: 0, staða: 'lokið', tími: 'Lokið' },
   { id: 3, deild: 'EPL', heima: 'Arsenal', gestir: 'Man City', heimaStig: 2, gestaStig: 2, staða: 'lokið', tími: 'Lokið' },
@@ -13,41 +15,24 @@ const LEIKIR = [
   { id: 6, deild: 'Handbolti', heima: 'Haukar', gestir: 'Selfoss', heimaStig: 28, gestaStig: 31, staða: 'lokið', tími: 'Lokið' },
 ];
 
-export default function App() {
+export default function HomeScreen({ navigation }) {
   const [valinDeild, setValinDeild] = useState('Allt');
-  const [valinnLeikur, setValinnLeikur] = useState(null);
+  const [leikir, setLeikir] = useState(GERVILEIKIR);
+  const [hleður, setHleður] = useState(false);
 
-  const síaðirLeikir = valinDeild === 'Allt' ? LEIKIR : LEIKIR.filter(l => l.deild === valinDeild);
-
-  if (valinnLeikur) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar style="light" />
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setValinnLeikur(null)}>
-            <Text style={styles.tilbaka}>← Til baka</Text>
-          </TouchableOpacity>
-          <Text style={styles.deildNafnHeader}>{valinnLeikur.deild}</Text>
-        </View>
-        <View style={styles.leikurSíða}>
-          <View style={styles.stigaKort}>
-            <Text style={styles.stigStór}>{valinnLeikur.staða === 'óleikinn' ? valinnLeikur.tími : `${valinnLeikur.heimaStig} – ${valinnLeikur.gestaStig}`}</Text>
-            <View style={styles.liðirRow}>
-              <Text style={styles.liðNafnStór}>{valinnLeikur.heima}</Text>
-              <Text style={styles.liðNafnStór}>{valinnLeikur.gestir}</Text>
-            </View>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const síaðirLeikir = valinDeild === 'Allt' ? leikir : leikir.filter(l => l.deild === valinDeild);
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
+      
       <View style={styles.header}>
         <Text style={styles.lógó}>Sk<Text style={styles.lógóO}>o</Text>r</Text>
+        <TouchableOpacity style={styles.uppfæraHnappur}>
+          <Text style={styles.uppfæraTekst}>↻</Text>
+        </TouchableOpacity>
       </View>
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.flipaBar}>
         {DEILDIR.map(d => (
           <TouchableOpacity key={d} onPress={() => setValinDeild(d)} style={[styles.flipa, valinDeild === d && styles.flipaVakin]}>
@@ -55,15 +40,18 @@ export default function App() {
           </TouchableOpacity>
         ))}
       </ScrollView>
+
       <ScrollView style={styles.leikirListi}>
         {síaðirLeikir.map(leikur => (
-          <TouchableOpacity key={leikur.id} onPress={() => setValinnLeikur(leikur)}>
+          <TouchableOpacity key={leikur.id} onPress={() => navigation.navigate('Leikur', { leikur })}>
             <View style={[styles.leikurKort, leikur.staða === 'live' && styles.leikurKortLive]}>
               <View style={styles.leikurHaus}>
                 <Text style={styles.deildNafn}>{leikur.deild}</Text>
-                <Text style={[styles.stöðuTekst, leikur.staða === 'live' ? styles.liveTekst : styles.lokiðTekst]}>
-                  {leikur.staða === 'live' ? `● ${leikur.tími}` : leikur.tími}
-                </Text>
+                <View style={[styles.stöðuMerki, leikur.staða === 'live' ? styles.liveMerki : leikur.staða === 'óleikinn' ? styles.óleikinnMerki : styles.lokiðMerki]}>
+                  <Text style={[styles.stöðuTekst, leikur.staða === 'live' ? styles.liveTekst : leikur.staða === 'óleikinn' ? styles.óleikinnTekst : styles.lokiðTekst]}>
+                    {leikur.staða === 'live' ? `● ${leikur.tími}` : leikur.tími}
+                  </Text>
+                </View>
               </View>
               <View style={styles.leikurMiðja}>
                 <View style={styles.lið}>
@@ -86,6 +74,7 @@ export default function App() {
           </TouchableOpacity>
         ))}
       </ScrollView>
+
       <View style={styles.neðriFlipir}>
         {[['🏠','Heim'],['📊','Tafla'],['📅','Dagskrá'],['⭐','Mínir'],['⚙️','Stillingar']].map(([icon, nafn]) => (
           <TouchableOpacity key={nafn} style={styles.neðriFlip}>
@@ -103,13 +92,8 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   lógó: { fontSize: 28, fontWeight: '600', color: '#fff' },
   lógóO: { color: '#1D9E75' },
-  tilbaka: { color: '#1D9E75', fontSize: 16 },
-  deildNafnHeader: { color: 'rgba(255,255,255,0.4)', fontSize: 13 },
-  leikurSíða: { flex: 1, padding: 16 },
-  stigaKort: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 32, alignItems: 'center' },
-  stigStór: { color: '#fff', fontSize: 48, fontWeight: '700', marginBottom: 16 },
-  liðirRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
-  liðNafnStór: { color: '#fff', fontSize: 16, fontWeight: '500' },
+  uppfæraHnappur: { padding: 8 },
+  uppfæraTekst: { color: '#1D9E75', fontSize: 22 },
   flipaBar: { paddingHorizontal: 12, paddingBottom: 10, flexGrow: 0 },
   flipa: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20, marginHorizontal: 4, backgroundColor: 'rgba(255,255,255,0.08)' },
   flipaVakin: { backgroundColor: '#1D9E75' },
@@ -120,8 +104,13 @@ const styles = StyleSheet.create({
   leikurKortLive: { borderColor: 'rgba(29,158,117,0.5)', backgroundColor: 'rgba(29,158,117,0.08)' },
   leikurHaus: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
   deildNafn: { color: 'rgba(255,255,255,0.4)', fontSize: 11 },
+  stöðuMerki: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  liveMerki: { backgroundColor: 'rgba(29,158,117,0.2)' },
+  óleikinnMerki: { backgroundColor: 'rgba(255,255,255,0.08)' },
+  lokiðMerki: { backgroundColor: 'transparent' },
   stöðuTekst: { fontSize: 11 },
   liveTekst: { color: '#1D9E75', fontWeight: '600' },
+  óleikinnTekst: { color: 'rgba(255,255,255,0.5)' },
   lokiðTekst: { color: 'rgba(255,255,255,0.3)' },
   leikurMiðja: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   lið: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
