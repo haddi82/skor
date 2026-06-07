@@ -5,7 +5,7 @@ import LeikurScreen from './screens/LeikurScreen';
 import StandingsScreen from './screens/StandingsScreen';
 import { sækjaLeiki } from './data/api';
 
-const DEILDIR = ['Allir', 'Í dag', 'Óleikinn', 'Lokið'];
+const DEILDIR = ['Allir', 'Í dag', 'Næstu leikir', 'Lokið'];
 
 function sækjaStöðu(fixture) {
   const s = fixture.fixture.status.short;
@@ -67,7 +67,7 @@ export default function App() {
     .filter(l => {
       if (valinFlipa === 'Allir') return true;
       if (valinFlipa === 'Í dag') return l.dagsetning.toDateString() === í_dag;
-      if (valinFlipa === 'Óleikinn') return l.staða === 'óleikinn';
+      if (valinFlipa === 'Næstu leikir') return l.staða === 'óleikinn';
       if (valinFlipa === 'Lokið') return l.staða === 'lokið';
       return true;
     })
