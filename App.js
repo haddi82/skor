@@ -63,21 +63,22 @@ export default function App() {
   }, []);
 
   const í_dag = new Date().toDateString();
-const síaðirLeikir = leikir
-  .filter(l => {
-    if (valinFlipa === 'Allir') return true;
-    if (valinFlipa === 'Í dag') return l.dagsetning.toDateString() === í_dag;
-    if (valinFlipa === 'Óleikinn') return l.staða === 'óleikinn';
-    if (valinFlipa === 'Lokið') return l.staða === 'lokið';
-    return true;
-  })
-  .sort((a, b) => {
-    const röð = { live: 0, óleikinn: 1, lokið: 2 };
-    if (röð[a.staða] !== röð[b.staða]) return röð[a.staða] - röð[b.staða];
-    if (a.staða === 'óleikinn') return a.dagsetning - b.dagsetning;
-    if (a.staða === 'lokið') return b.dagsetning - a.dagsetning;
-    return 0;
-  });
+  const síaðirLeikir = leikir
+    .filter(l => {
+      if (valinFlipa === 'Allir') return true;
+      if (valinFlipa === 'Í dag') return l.dagsetning.toDateString() === í_dag;
+      if (valinFlipa === 'Óleikinn') return l.staða === 'óleikinn';
+      if (valinFlipa === 'Lokið') return l.staða === 'lokið';
+      return true;
+    })
+    .sort((a, b) => {
+      const röð = { live: 0, óleikinn: 1, lokið: 2 };
+      if (röð[a.staða] !== röð[b.staða]) return röð[a.staða] - röð[b.staða];
+      if (a.staða === 'óleikinn') return a.dagsetning - b.dagsetning;
+      if (a.staða === 'lokið') return b.dagsetning - a.dagsetning;
+      return 0;
+    });
+
   if (valinnLeikur) {
     return <LeikurScreen leikur={valinnLeikur} onTilbaka={() => setValinnLeikur(null)} />;
   }
@@ -85,6 +86,11 @@ const síaðirLeikir = leikir
   if (sýnaStigatafla) {
     return <StandingsScreen onTilbaka={() => setSýnaStigatafla(false)} />;
   }
+
+  const í_dag_str = new Date().toLocaleDateString('is-IS', { weekday: 'long', day: 'numeric', month: 'long' });
+  const á_morgun_str = new Date(Date.now() + 86400000).toLocaleDateString('is-IS', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  let síðasteDagur = null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -115,35 +121,46 @@ const síaðirLeikir = leikir
               <Text style={styles.loadingTekst}>Engir leikir</Text>
             </View>
           ) : (
-            síaðirLeikir.map(leikur => (
-              <TouchableOpacity key={leikur.id} onPress={() => setValinnLeikur(leikur)}>
-                <View style={[styles.leikurKort, leikur.staða === 'live' && styles.leikurKortLive]}>
-                  <View style={styles.leikurHaus}>
-                    <Text style={styles.deildNafn}>{leikur.deild}</Text>
-                    <Text style={[styles.stöðuTekst, leikur.staða === 'live' ? styles.liveTekst : styles.lokiðTekst]}>
-                      {leikur.staða === 'live' ? `● ${leikur.tími}` : leikur.tími}
-                    </Text>
-                  </View>
-                  <View style={styles.leikurMiðja}>
-                    <View style={styles.lið}>
-                      <View style={styles.liðLógó}><Text style={styles.liðStafur}>{leikur.heima[0]}</Text></View>
-                      <Text style={styles.liðNafn} numberOfLines={1}>{leikur.heima}</Text>
+            síaðirLeikir.map(leikur => {
+              const dagur = leikur.dagsetning.toLocaleDateString('is-IS', { weekday: 'long', day: 'numeric', month: 'long' });
+              const sýnaDag = dagur !== síðasteDagur;
+              síðasteDagur = dagur;
+              let dagHeiti = dagur;
+              if (dagur === í_dag_str) dagHeiti = 'Í dag';
+              if (dagur === á_morgun_str) dagHeiti = 'Á morgun';
+              return (
+                <View key={leikur.id}>
+                  {sýnaDag && <Text style={styles.dagHeiti}>{dagHeiti}</Text>}
+                  <TouchableOpacity onPress={() => setValinnLeikur(leikur)}>
+                    <View style={[styles.leikurKort, leikur.staða === 'live' && styles.leikurKortLive]}>
+                      <View style={styles.leikurHaus}>
+                        <Text style={styles.deildNafn}>{leikur.deild}</Text>
+                        <Text style={[styles.stöðuTekst, leikur.staða === 'live' ? styles.liveTekst : styles.lokiðTekst]}>
+                          {leikur.staða === 'live' ? `● ${leikur.tími}` : leikur.tími}
+                        </Text>
+                      </View>
+                      <View style={styles.leikurMiðja}>
+                        <View style={styles.lið}>
+                          <View style={styles.liðLógó}><Text style={styles.liðStafur}>{leikur.heima[0]}</Text></View>
+                          <Text style={styles.liðNafn} numberOfLines={1}>{leikur.heima}</Text>
+                        </View>
+                        <View style={styles.stigBox}>
+                          {leikur.staða === 'óleikinn' ? (
+                            <Text style={styles.óleikinnTími}>{leikur.tími}</Text>
+                          ) : (
+                            <Text style={styles.stig}>{leikur.heimaStig} – {leikur.gestaStig}</Text>
+                          )}
+                        </View>
+                        <View style={[styles.lið, styles.liðHægri]}>
+                          <Text style={[styles.liðNafn, {textAlign:'right'}]} numberOfLines={1}>{leikur.gestir}</Text>
+                          <View style={styles.liðLógó}><Text style={styles.liðStafur}>{leikur.gestir[0]}</Text></View>
+                        </View>
+                      </View>
                     </View>
-                    <View style={styles.stigBox}>
-                      {leikur.staða === 'óleikinn' ? (
-                        <Text style={styles.óleikinnTími}>{leikur.tími}</Text>
-                      ) : (
-                        <Text style={styles.stig}>{leikur.heimaStig} – {leikur.gestaStig}</Text>
-                      )}
-                    </View>
-                    <View style={[styles.lið, styles.liðHægri]}>
-                      <Text style={[styles.liðNafn, {textAlign:'right'}]} numberOfLines={1}>{leikur.gestir}</Text>
-                      <View style={styles.liðLógó}><Text style={styles.liðStafur}>{leikur.gestir[0]}</Text></View>
-                    </View>
-                  </View>
+                  </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
-            ))
+              );
+            })
           )}
         </ScrollView>
       )}
@@ -173,6 +190,7 @@ const styles = StyleSheet.create({
   leikirListi: { flex: 1, paddingHorizontal: 12 },
   miðja: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: 60 },
   loadingTekst: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
+  dagHeiti: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1, paddingHorizontal: 4, paddingTop: 16, paddingBottom: 6 },
   leikurKort: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.08)' },
   leikurKortLive: { borderColor: 'rgba(29,158,117,0.5)', backgroundColor: 'rgba(29,158,117,0.08)' },
   leikurHaus: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
