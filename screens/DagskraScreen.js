@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  ActivityIndicator, StyleSheet, SafeAreaView, RefreshControl
+  ActivityIndicator, StyleSheet, SafeAreaView, RefreshControl, Linking
 } from 'react-native';
 import { sækjaLeiki } from '../data/api';
 
@@ -12,16 +12,45 @@ const DEILDIR = [
   { id: 1, nafn: 'HM 2026', land: '🌍', season: 2026 },
 ];
 
-const STREAMING = {
+const DEILD_STREAMING = {
   164: [{ nafn: 'SÝN', url: 'https://www.syn.is' }],
   165: [],
   166: [],
-  1: [
-    { nafn: 'RÚV', url: 'https://www.ruv.is' },
-    { nafn: 'BBC iPlayer', url: 'https://www.bbc.co.uk/iplayer' },
-    { nafn: 'ITV', url: 'https://www.itv.com' },
-    { nafn: 'UK dagskrá', url: 'https://www.sportsmole.co.uk/football/england/world-cup/feature/world-cup-tv-schedule-where-to-watch-every-game-in-the-uk_596524.html' },
-  ],
+};
+
+const HM_STREAMING = {
+  1489369: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1538999: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1539000: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
+  1489370: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
+  1489373: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1489371: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
+  1489372: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
+  1489374: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1489375: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
+  1489376: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1489377: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
+  1489378: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
+  1489379: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1489380: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1489381: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1489382: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
+  1489383: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
+  1489384: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1489385: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1489386: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
+  1489387: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1489388: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
+  1489389: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1489390: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1489391: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
+  1489392: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
+  1489393: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1489394: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
+  1489395: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1489396: { nafn: 'ITV', url: 'https://www.itv.com/watch/live' },
+  1489397: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
+  1489398: { nafn: 'BBC', url: 'https://www.bbc.co.uk/iplayer' },
 };
 
 function sækjaStöðu(fixture) {
@@ -96,13 +125,21 @@ export default function DagskraScreen({ onLeikurValinn }) {
             let dagHeiti = dagStr;
             if (dagStr === í_dag) dagHeiti = 'Í dag';
             if (dagStr === á_morgun) dagHeiti = 'Á morgun';
-            const streaming = STREAMING[f._deild.id] || [];
+
+            const fid = f.fixture.id;
+            let streaming = [];
+            if (f._deild.id === 1) {
+              const hmStream = HM_STREAMING[fid];
+              if (hmStream) streaming = [hmStream, { nafn: 'RÚV', url: 'https://www.ruv.is' }];
+            } else {
+              streaming = DEILD_STREAMING[f._deild.id] || [];
+            }
 
             return (
-              <View key={f.fixture.id}>
+              <View key={fid}>
                 {sýnaDag && <Text style={s.dagHeiti}>{dagHeiti}</Text>}
                 <TouchableOpacity onPress={() => onLeikurValinn && onLeikurValinn({
-                  id: f.fixture.id,
+                  id: fid,
                   heima: f.teams.home.name,
                   gestir: f.teams.away.name,
                   heimaStig: f.goals.home,
@@ -116,7 +153,7 @@ export default function DagskraScreen({ onLeikurValinn }) {
                     <View style={s.kortHaus}>
                       <Text style={s.deildNafn}>{f._deild.land} {f._deild.nafn}</Text>
                       <Text style={[s.staðaTekst, staða === 'live' ? s.liveTekst : s.grárTekst]}>
-                        {staða === 'live' ? `● LIVE` : tími}
+                        {staða === 'live' ? '● LIVE' : tími}
                       </Text>
                     </View>
                     <View style={s.kortMiðja}>
@@ -135,7 +172,7 @@ export default function DagskraScreen({ onLeikurValinn }) {
                         <Text style={s.streamingLabel}>Horfa:</Text>
                         {streaming.map(st => (
                           <TouchableOpacity key={st.nafn} style={s.streamingHnappur}
-                            onPress={e => { e.stopPropagation(); require('react-native').Linking.openURL(st.url); }}>
+                            onPress={e => { e.stopPropagation(); Linking.openURL(st.url); }}>
                             <Text style={s.streamingTekst}>{st.nafn}</Text>
                           </TouchableOpacity>
                         ))}
@@ -177,7 +214,7 @@ const s = StyleSheet.create({
   liðStafur: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '600' },
   liðNafn: { color: '#fff', fontSize: 13, fontWeight: '500', flex: 1 },
   vs: { color: 'rgba(255,255,255,0.3)', fontSize: 12, paddingHorizontal: 8 },
-  streamingBar: { flexDirection: 'row', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)', gap: 8 },
+  streamingBar: { flexDirection: 'row', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)', gap: 8, flexWrap: 'wrap' },
   streamingLabel: { color: 'rgba(255,255,255,0.3)', fontSize: 11 },
   streamingHnappur: { backgroundColor: 'rgba(29,158,117,0.15)', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 4, borderWidth: 0.5, borderColor: '#1D9E75' },
   streamingTekst: { color: '#1D9E75', fontSize: 11, fontWeight: '600' },
