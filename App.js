@@ -5,7 +5,22 @@ import LeikurScreen from './screens/LeikurScreen';
 import StandingsScreen from './screens/StandingsScreen';
 import { sækjaLeiki } from './data/api';
 
-const DEILDIR = ['Allir', 'Í dag', 'Næstu leikir', 'Lokið'];
+const ITHROTTIR = [
+  { lykill: 'fotbolti', nafn: 'Fótbolti', tákn: '⚽' },
+  { lykill: 'korfubolti', nafn: 'Körfubolti', tákn: '🏀' },
+  { lykill: 'handbolti', nafn: 'Handbolti', tákn: '🤾' },
+];
+
+const DEILDIR_PER_ITHROT = {
+  fotbolti: [
+    { id: 164, nafn: 'Besta deild KK', land: '🇮🇸' },
+    { id: 671, nafn: 'Besta deild KVK', land: '🇮🇸' },
+    { id: 165, nafn: 'Lengjudeild KK', land: '🇮🇸' },
+    { id: 166, nafn: '2. deild KK', land: '🇮🇸' },
+  ],
+  korfubolti: [],
+  handbolti: [],
+};
 
 function sækjaStöðu(fixture) {
   const s = fixture.fixture.status.short;
@@ -33,25 +48,18 @@ function forskoðaLeik(fixture, deildNafn) {
 
 export default function App() {
   const [virkurFlip, setVirkurFlip] = useState('heim');
-  const [valinFlipa, setValinFlipa] = useState('Allir');
+  const [virkIþrótt, setVirkIþrótt] = useState('fotbolti');
+  const [virkDeild, setVirkDeild] = useState(DEILDIR_PER_ITHROT.fotbolti[0]);
   const [valinnLeikur, setValinnLeikur] = useState(null);
   const [leikir, setLeikir] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  async function hlaða() {
-  try {
-    const [urvals, eitt, kvk] = await Promise.all([
-      sækjaLeiki(164),
-      sækjaLeiki(165),
-      sækjaLeiki(671),
-    ]);
-    const allirLeikir = [
-      ...urvals.map(f => forskoðaLeik(f, 'Úrvalsdeild KK')),
-      ...eitt.map(f => forskoðaLeik(f, '1. Deild KK')),
-      ...kvk.map(f => forskoðaLeik(f, 'Úrvalsdeild KVK')),
-    ];
-    setLeikir(allirLeikir);
+  async function hlaða(deild) {
+    setLoading(true);
+    try {
+      const gögn = await sækjaLeiki(deild.id);
+      setLeikir(gögn.map(f => forskoðaLeik(f, deild.nafn)));
     } catch (e) {
       console.error(e);
     } finally {
@@ -61,32 +69,35 @@ export default function App() {
   }
 
   useEffect(() => {
-    hlaða();
-    const interval = setInterval(hlaða, 60000);
+    if (virkDeild) hlaða(virkDeild);
+    const interval = setInterval(() => { if (virkDeild) hlaða(virkDeild); }, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [virkDeild]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    hlaða();
-  }, []);
+    hlaða(virkDeild);
+  }, [virkDeild]);
 
-  const í_dag = new Date().toDateString();
-  const síaðirLeikir = leikir
-    .filter(l => {
-      if (valinFlipa === 'Allir') return true;
-      if (valinFlipa === 'Í dag') return l.dagsetning.toDateString() === í_dag;
-      if (valinFlipa === 'Næstu leikir') return l.staða === 'óleikinn';
-      if (valinFlipa === 'Lokið') return l.staða === 'lokið';
-      return true;
-    })
-    .sort((a, b) => {
-      const röð = { live: 0, óleikinn: 1, lokið: 2 };
-      if (röð[a.staða] !== röð[b.staða]) return röð[a.staða] - röð[b.staða];
-      if (a.staða === 'óleikinn') return a.dagsetning - b.dagsetning;
-      if (a.staða === 'lokið') return b.dagsetning - a.dagsetning;
-      return 0;
-    });
+  function velja_ithrot(lykill) {
+    setVirkIþrótt(lykill);
+    const deildir = DEILDIR_PER_ITHROT[lykill];
+    if (deildir.length > 0) {
+      setVirkDeild(deildir[0]);
+    } else {
+      setVirkDeild(null);
+      setLeikir([]);
+      setLoading(false);
+    }
+  }
+
+  const raðaðirLeikir = [...leikir].sort((a, b) => {
+    const röð = { live: 0, óleikinn: 1, lokið: 2 };
+    if (röð[a.staða] !== röð[b.staða]) return röð[a.staða] - röð[b.staða];
+    if (a.staða === 'óleikinn') return a.dagsetning - b.dagsetning;
+    if (a.staða === 'lokið') return b.dagsetning - a.dagsetning;
+    return 0;
+  });
 
   if (valinnLeikur) {
     return <LeikurScreen leikur={valinnLeikur} onTilbaka={() => setValinnLeikur(null)} />;
@@ -99,20 +110,35 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
+
       <View style={styles.header}>
         <Text style={styles.lógó}>Sk<Text style={styles.lógóO}>o</Text>r</Text>
       </View>
 
-      {/* Aðalinnihald */}
       {virkurFlip === 'heim' && (
         <>
+          {/* Íþróttaflipir */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.flipaBar}>
-            {DEILDIR.map(d => (
-              <TouchableOpacity key={d} onPress={() => setValinFlipa(d)} style={[styles.flipa, valinFlipa === d && styles.flipaVakin]}>
-                <Text style={[styles.flipaTekst, valinFlipa === d && styles.flipaTekstVakinn]}>{d}</Text>
+            {ITHROTTIR.map(i => (
+              <TouchableOpacity key={i.lykill} onPress={() => velja_ithrot(i.lykill)} style={[styles.ithrottaFlip, virkIþrótt === i.lykill && styles.ithrottaFlipVirkur]}>
+                <Text style={styles.ithrottaTákn}>{i.tákn}</Text>
+                <Text style={[styles.ithrottaNafn, virkIþrótt === i.lykill && styles.ithrottaNafnVirkur]}>{i.nafn}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
+
+          {/* Deildarflipir */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.deildaBar}>
+            {DEILDIR_PER_ITHROT[virkIþrótt].map(d => (
+              <TouchableOpacity key={d.id} onPress={() => setVirkDeild(d)} style={[styles.deildaFlip, virkDeild?.id === d.id && styles.deildaFlipVirkur]}>
+                <Text style={[styles.deildaTekst, virkDeild?.id === d.id && styles.deildaTekstVirkur]}>{d.land} {d.nafn}</Text>
+              </TouchableOpacity>
+            ))}
+            {DEILDIR_PER_ITHROT[virkIþrótt].length === 0 && (
+              <Text style={styles.kmrBráðlega}>Kemur bráðlega</Text>
+            )}
+          </ScrollView>
+
           {loading ? (
             <View style={styles.miðja}>
               <ActivityIndicator size="large" color="#1D9E75" />
@@ -123,12 +149,12 @@ export default function App() {
               style={styles.leikirListi}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1D9E75" />}
             >
-              {síaðirLeikir.length === 0 ? (
+              {raðaðirLeikir.length === 0 ? (
                 <View style={styles.miðja}>
                   <Text style={styles.loadingTekst}>Engir leikir</Text>
                 </View>
               ) : (
-                síaðirLeikir.map(leikur => {
+                raðaðirLeikir.map(leikur => {
                   const dagur = leikur.dagsetning.toLocaleDateString('is-IS', { weekday: 'long', day: 'numeric', month: 'long' });
                   const sýnaDag = dagur !== síðasteDagur;
                   síðasteDagur = dagur;
@@ -175,7 +201,7 @@ export default function App() {
       )}
 
       {virkurFlip === 'tafla' && (
-        <StandingsScreen />
+        <StandingsScreen deild={virkDeild} />
       )}
 
       {virkurFlip === 'dagskra' && (
@@ -190,17 +216,11 @@ export default function App() {
         </View>
       )}
 
-      {virkurFlip === 'stillingar' && (
-        <View style={styles.miðja}>
-          <Text style={styles.loadingTekst}>Stillingar – kemur bráðlega</Text>
-        </View>
-      )}
-
-      {/* Neðri stika – alltaf til staðar */}
+      {/* Neðri stika */}
       <View style={styles.neðriFlipir}>
         {[['🏠','Heim','heim'],['📊','Tafla','tafla'],['📅','Dagskrá','dagskra'],['⭐','Mínir','minir'],['⚙️','Stillingar','stillingar']].map(([icon, nafn, lykill]) => (
           <TouchableOpacity key={lykill} style={styles.neðriFlip} onPress={() => setVirkurFlip(lykill)}>
-            <Text style={[styles.neðriIcon, virkurFlip === lykill && styles.neðriIconVirkur]}>{icon}</Text>
+            <Text style={styles.neðriIcon}>{icon}</Text>
             <Text style={[styles.neðriTekst, virkurFlip === lykill && styles.neðriTekstVirkur]}>{nafn}</Text>
           </TouchableOpacity>
         ))}
@@ -211,16 +231,23 @@ export default function App() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f0f18' },
-  header: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  header: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 6, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   lógó: { fontSize: 28, fontWeight: '600', color: '#fff' },
   lógóO: { color: '#1D9E75' },
-  flipaBar: { paddingHorizontal: 12, paddingBottom: 10, flexGrow: 0 },
-  flipa: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20, marginHorizontal: 4, backgroundColor: 'rgba(255,255,255,0.08)' },
-  flipaVakin: { backgroundColor: '#1D9E75' },
-  flipaTekst: { color: 'rgba(255,255,255,0.5)', fontSize: 13 },
-  flipaTekstVakinn: { color: '#04342C', fontWeight: '600' },
+  flipaBar: { paddingHorizontal: 12, paddingBottom: 6, flexGrow: 0 },
+  ithrottaFlip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, marginHorizontal: 4, backgroundColor: 'rgba(255,255,255,0.08)' },
+  ithrottaFlipVirkur: { backgroundColor: '#1D9E75' },
+  ithrottaTákn: { fontSize: 14 },
+  ithrottaNafn: { color: 'rgba(255,255,255,0.5)', fontSize: 13 },
+  ithrottaNafnVirkur: { color: '#04342C', fontWeight: '600' },
+  deildaBar: { paddingHorizontal: 12, paddingBottom: 8, flexGrow: 0 },
+  deildaFlip: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 16, marginHorizontal: 3, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.1)' },
+  deildaFlipVirkur: { backgroundColor: 'rgba(29,158,117,0.15)', borderColor: '#1D9E75' },
+  deildaTekst: { color: 'rgba(255,255,255,0.4)', fontSize: 12 },
+  deildaTekstVirkur: { color: '#1D9E75', fontWeight: '600' },
+  kmrBráðlega: { color: 'rgba(255,255,255,0.3)', fontSize: 12, paddingHorizontal: 12, paddingVertical: 5 },
   leikirListi: { flex: 1, paddingHorizontal: 12 },
-  miðja: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: 60 },
+  miðja: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   loadingTekst: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
   dagHeiti: { color: 'rgba(255,255,255,0.5)', fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1, paddingHorizontal: 4, paddingTop: 16, paddingBottom: 6 },
   leikurKort: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.08)' },
@@ -242,7 +269,6 @@ const styles = StyleSheet.create({
   neðriFlipir: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 10, borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.08)', paddingBottom: 20 },
   neðriFlip: { alignItems: 'center', gap: 3 },
   neðriIcon: { fontSize: 20 },
-  neðriIconVirkur: { },
   neðriTekst: { color: 'rgba(255,255,255,0.4)', fontSize: 10 },
   neðriTekstVirkur: { color: '#1D9E75', fontWeight: '600' },
 });
