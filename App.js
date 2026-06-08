@@ -1,3 +1,4 @@
+import DagskraScreen from './screens/DagskraScreen';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, RefreshControl } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
@@ -217,10 +218,8 @@ export default function App() {
       )}
 
       {virkurFlip === 'dagskra' && (
-        <View style={styles.miðja}>
-          <Text style={styles.loadingTekst}>Dagskrá – kemur bráðlega</Text>
-        </View>
-      )}
+  <DagskraScreen onLeikurValinn={setValinnLeikur} />
+)}
 
       {virkurFlip === 'minir' && (
         <View style={styles.miðja}>

@@ -1,29 +1,41 @@
 import { View, Text, Image, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { useState, useEffect } from 'react';
 
-// BREYTTU ÞESSUM UPPLÝSINGUM ÞEGAR NÝR VIÐSKIPTAVINUR KEMUR
-const SPONSOR = {
-  virkt: true,
-  mynd: 'https://raw.githubusercontent.com/haddi82/skor/main/images/satis_banner.png',
-  url: 'https://www.satis.is/',
-  nafn: 'Satis — Target Tor',
-};
+const SPONSORS = [
+  {
+    mynd: 'https://raw.githubusercontent.com/haddi82/skor/master/images/satis_banner.png',
+    url: 'https://www.satis.is/',
+    nafn: 'Satis — Target Tor',
+  },
+  // Bættu við fleiri hér:
+  // {
+  //   mynd: 'https://...',
+  //   url: 'https://...',
+  //   nafn: 'Nafn fyrirtækis',
+  // },
+];
+
+let núverandi = 0;
 
 export default function SponsorKort() {
-  if (!SPONSOR.virkt) return null;
+  if (SPONSORS.length === 0) return null;
+
+  const sponsor = SPONSORS[núverandi % SPONSORS.length];
+  núverandi++;
 
   return (
     <TouchableOpacity
       style={s.container}
-      onPress={() => Linking.openURL(SPONSOR.url)}
+      onPress={() => Linking.openURL(sponsor.url)}
       activeOpacity={0.85}
     >
       <Text style={s.merki}>AUGLÝSING</Text>
       <Image
-        source={{ uri: SPONSOR.mynd }}
+        source={{ uri: sponsor.mynd }}
         style={s.mynd}
         resizeMode="contain"
       />
-      <Text style={s.nafn}>{SPONSOR.nafn}</Text>
+      <Text style={s.nafn}>{sponsor.nafn}</Text>
     </TouchableOpacity>
   );
 }
