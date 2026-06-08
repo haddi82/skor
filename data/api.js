@@ -22,7 +22,8 @@ export async function sækjaStigatoflu(leagueId, season = 2026) {
     headers: { 'x-apisports-key': API_KEY }
   });
   const data = await res.json();
-  return data.response[0]?.league?.standings[0] || [];
+  const standings = data.response[0]?.league?.standings || [];
+return standings.length === 1 ? standings[0] : standings;
 }
 
 export async function sækjaLeikinn(fixtureId) {
@@ -47,4 +48,25 @@ export async function sækjaTölfræði(fixtureId) {
   });
   const data = await res.json();
   return data.response;
+}
+export async function sækjaMarkaskorarar(leagueId, season = 2026) {
+  const res = await fetch(`${BASE_URL}/players/topscorers?league=${leagueId}&season=${season}`, {
+    headers: { 'x-apisports-key': API_KEY }
+  });
+  const data = await res.json();
+  return data.response;
+}
+export async function sækjaMarkavörður(leagueId, season = 2026) {
+  const res = await fetch(`${BASE_URL}/players/topassists?league=${leagueId}&season=${season}`, {
+    headers: { 'x-apisports-key': API_KEY }
+  });
+  const data = await res.json();
+  return data.response;
+}
+export async function sækjaLið(teamId) {
+  const res = await fetch(`${BASE_URL}/players/squads?team=${teamId}`, {
+    headers: { 'x-apisports-key': API_KEY }
+  });
+  const data = await res.json();
+  return data.response[0]?.players || [];
 }

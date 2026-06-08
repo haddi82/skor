@@ -1,9 +1,12 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, SafeAreaView, ActivityIndicator, RefreshControl } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import LeikurScreen from './screens/LeikurScreen';
 import StandingsScreen from './screens/StandingsScreen';
+import HMScreen from './screens/HMScreen';
 import { sækjaLeiki } from './data/api';
+import SponsorKort from './components/SponsorKort';
 
 const ITHROTTIR = [
   { lykill: 'fotbolti', nafn: 'Fótbolti', tákn: '⚽' },
@@ -13,7 +16,6 @@ const ITHROTTIR = [
 const DEILDIR_PER_ITHROT = {
   fotbolti: [
     { id: 164, nafn: 'Besta deildin KK', land: '🇮🇸' },
-    { id: 671, nafn: 'Besta deildin KVK', land: '🇮🇸' },
     { id: 165, nafn: 'Lengjudeild KK', land: '🇮🇸' },
     { id: 166, nafn: '2. deild KK', land: '🇮🇸' },
   ],
@@ -55,10 +57,10 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  async function hlaða(deild) {
-    setLoading(true);
+  async function hlaða(deild, bakgrunnur = false) {
+    if (!bakgrunnur) setLoading(true);
     try {
-      const gögn = await sækjaLeiki(deild.id);
+      const gögn = await sækjaLeiki(deild.id, deild.season || 2026);
       setLeikir(gögn.map(f => forskoðaLeik(f, deild.nafn)));
     } catch (e) {
       console.error(e);
@@ -69,10 +71,10 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (virkDeild) hlaða(virkDeild);
-    const interval = setInterval(() => { if (virkDeild) hlaða(virkDeild); }, 60000);
+    if (virkDeild && virkIþrótt !== 'hm') hlaða(virkDeild);
+    const interval = setInterval(() => { if (virkDeild && virkIþrótt !== 'hm') hlaða(virkDeild, true); }, 60000);
     return () => clearInterval(interval);
-  }, [virkDeild]);
+  }, [virkDeild, virkIþrótt]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -117,7 +119,6 @@ export default function App() {
 
       {virkurFlip === 'heim' && (
         <>
-          {/* Íþróttaflipir */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.flipaBar}>
             {ITHROTTIR.map(i => (
               <TouchableOpacity key={i.lykill} onPress={() => velja_ithrot(i.lykill)} style={[styles.ithrottaFlip, virkIþrótt === i.lykill && styles.ithrottaFlipVirkur]}>
@@ -127,7 +128,6 @@ export default function App() {
             ))}
           </ScrollView>
 
-          {/* Deildarflipir */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.deildaBar}>
             {DEILDIR_PER_ITHROT[virkIþrótt].map(d => (
               <TouchableOpacity key={d.id} onPress={() => setVirkDeild(d)} style={[styles.deildaFlip, virkDeild?.id === d.id && styles.deildaFlipVirkur]}>
@@ -139,7 +139,9 @@ export default function App() {
             )}
           </ScrollView>
 
-          {loading ? (
+          {virkIþrótt === 'hm' ? (
+            <HMScreen onLeikurValinn={setValinnLeikur} />
+          ) : loading ? (
             <View style={styles.miðja}>
               <ActivityIndicator size="large" color="#1D9E75" />
               <Text style={styles.loadingTekst}>Sæki leiki...</Text>
@@ -154,7 +156,7 @@ export default function App() {
                   <Text style={styles.loadingTekst}>Engir leikir</Text>
                 </View>
               ) : (
-                raðaðirLeikir.map(leikur => {
+                raðaðirLeikir.map((leikur, i) => {
                   const dagur = leikur.dagsetning.toLocaleDateString('is-IS', { weekday: 'long', day: 'numeric', month: 'long' });
                   const sýnaDag = dagur !== síðasteDagur;
                   síðasteDagur = dagur;
@@ -164,6 +166,7 @@ export default function App() {
                   return (
                     <View key={leikur.id}>
                       {sýnaDag && <Text style={styles.dagHeiti}>{dagHeiti}</Text>}
+                      {i > 0 && i % 5 === 0 && <SponsorKort />}
                       <TouchableOpacity onPress={() => setValinnLeikur(leikur)}>
                         <View style={[styles.leikurKort, leikur.staða === 'live' && styles.leikurKortLive]}>
                           <View style={styles.leikurHaus}>
@@ -201,17 +204,17 @@ export default function App() {
       )}
 
       {virkurFlip === 'tafla' && (
-  <>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.deildaBar}>
-      {DEILDIR_PER_ITHROT[virkIþrótt].map(d => (
-        <TouchableOpacity key={d.id} onPress={() => setVirkDeild(d)} style={[styles.deildaFlip, virkDeild?.id === d.id && styles.deildaFlipVirkur]}>
-          <Text style={[styles.deildaTekst, virkDeild?.id === d.id && styles.deildaTekstVirkur]}>{d.land} {d.nafn}</Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
-    <StandingsScreen deild={virkDeild} />
-  </>
-)}
+        <>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.deildaBar}>
+            {DEILDIR_PER_ITHROT[virkIþrótt].map(d => (
+              <TouchableOpacity key={d.id} onPress={() => setVirkDeild(d)} style={[styles.deildaFlip, virkDeild?.id === d.id && styles.deildaFlipVirkur]}>
+                <Text style={[styles.deildaTekst, virkDeild?.id === d.id && styles.deildaTekstVirkur]}>{d.land} {d.nafn}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <StandingsScreen deild={virkDeild} />
+        </>
+      )}
 
       {virkurFlip === 'dagskra' && (
         <View style={styles.miðja}>
@@ -225,11 +228,20 @@ export default function App() {
         </View>
       )}
 
-      {/* Neðri stika */}
       <View style={styles.neðriFlipir}>
-        {[['🏠','Heim','heim'],['📊','Tafla','tafla'],['📅','Dagskrá','dagskra'],['⭐','Mínir','minir'],['⚙️','Stillingar','stillingar']].map(([icon, nafn, lykill]) => (
+        {[
+          ['home-outline','home-sharp','Heim','heim'],
+          ['bar-chart-outline','bar-chart','Stigatöflur','tafla'],
+          ['calendar-outline','calendar','Dagskrá','dagskra'],
+          ['star-outline','star','Mínir','minir'],
+          ['settings-outline','settings','Stillingar','stillingar'],
+        ].map(([icon, iconVirkur, nafn, lykill]) => (
           <TouchableOpacity key={lykill} style={styles.neðriFlip} onPress={() => setVirkurFlip(lykill)}>
-            <Text style={styles.neðriIcon}>{icon}</Text>
+            <Ionicons
+              name={virkurFlip === lykill ? iconVirkur : icon}
+              size={22}
+              color={virkurFlip === lykill ? '#1D9E75' : 'rgba(255,255,255,0.4)'}
+            />
             <Text style={[styles.neðriTekst, virkurFlip === lykill && styles.neðriTekstVirkur]}>{nafn}</Text>
           </TouchableOpacity>
         ))}

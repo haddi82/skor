@@ -1,16 +1,19 @@
 import { StyleSheet, Text, View, ScrollView, SafeAreaView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { sækjaStigatoflu } from '../data/api';
+import LiðScreen from './LiðScreen';
 
 export default function StandingsScreen({ deild }) {
   const [stigatafla, setStigatafla] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [villa, setVilla] = useState(null);
+  const [valinnLið, setValinnLið] = useState(null);
 
   async function hlaða() {
     try {
-      const gögn = await sækjaStigatoflu(deild?.id || 164);
+      const gögn = await sækjaStigatoflu(deild?.id || 164, deild?.season || 2026);
       setStigatafla(gögn);
       setVilla(null);
     } catch (e) {
@@ -30,6 +33,10 @@ export default function StandingsScreen({ deild }) {
     setRefreshing(true);
     hlaða();
   }, [deild?.id]);
+
+  if (valinnLið) {
+    return <LiðScreen lið={valinnLið} onTilbaka={() => setValinnLið(null)} />;
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -73,7 +80,15 @@ export default function StandingsScreen({ deild }) {
           </View>
 
           {stigatafla.map((lið, i) => (
-            <View key={lið.team.id}>
+            <TouchableOpacity key={lið.team.id} onPress={() => setValinnLið({
+              id: lið.team.id,
+              nafn: lið.team.name,
+              leikir: lið.all.played,
+              sigrar: lið.all.win,
+              jafntefli: lið.all.draw,
+              tap: lið.all.lose,
+              stig: lið.points,
+            })}>
               {i === 6 && <View style={styles.splitLína} />}
               <View style={[styles.röð, i % 2 === 0 && styles.röðDökkur]}>
                 <Text style={[styles.sætiTekst, lið.rank <= 3 && styles.efstSæti, lið.rank >= 11 && styles.neðstSæti]}>
@@ -84,6 +99,7 @@ export default function StandingsScreen({ deild }) {
                     <Text style={styles.liðStafur}>{lið.team.name[0]}</Text>
                   </View>
                   <Text style={styles.liðNafn} numberOfLines={1}>{lið.team.name}</Text>
+                  <Ionicons name="chevron-forward" size={14} color="rgba(255,255,255,0.2)" />
                 </View>
                 <Text style={styles.dálkur}>{lið.all.played}</Text>
                 <Text style={styles.dálkur}>{lið.all.win}</Text>
@@ -92,7 +108,7 @@ export default function StandingsScreen({ deild }) {
                 <Text style={[styles.dálkur, {width: 44}]}>{lið.all.goals.for}-{lið.all.goals.against}</Text>
                 <Text style={styles.stigDálkur}>{lið.points}</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
 
           <View style={styles.skýringar}>
@@ -118,7 +134,7 @@ const styles = StyleSheet.create({
   reyndurAfturTekst: { color: '#fff', fontSize: 14, fontWeight: '600' },
   hausRöð: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 10, marginBottom: 4 },
   hausTekst: { color: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: '600' },
-  hausDálkur: { color: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: '600', width: 36, textAlign: 'center' },
+  hausDálkur: { color: 'rgba(255,255,255,0.3)', fontSize: 11, fontWeight: '600', width: 28, textAlign: 'center' },
   röð: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 10, borderRadius: 8, marginBottom: 2 },
   röðDökkur: { backgroundColor: 'rgba(255,255,255,0.03)' },
   sætiTekst: { color: 'rgba(255,255,255,0.4)', fontSize: 13, width: 28, fontWeight: '500' },
@@ -128,8 +144,8 @@ const styles = StyleSheet.create({
   liðInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
   liðLógó: { width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
   liðStafur: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '600' },
-  liðNafn: { color: '#fff', fontSize: 13, fontWeight: '500', flex: 1 },
-  dálkur: { color: 'rgba(255,255,255,0.6)', fontSize: 11, width: 36, textAlign: 'center' },
+  liðNafn: { color: '#fff', fontSize: 13, fontWeight: '500', flex: 1, marginRight: 4 },
+  dálkur: { color: 'rgba(255,255,255,0.6)', fontSize: 11, width: 28, textAlign: 'center' },
   stigDálkur: { color: '#1D9E75', fontSize: 13, fontWeight: '700', width: 36, textAlign: 'center' },
   skýringar: { paddingVertical: 16, paddingHorizontal: 10, gap: 6 },
   skýring: { flexDirection: 'row', alignItems: 'center', gap: 8 },
