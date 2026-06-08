@@ -14,7 +14,7 @@ function sækjaStöðu(fixture) {
   return 'óleikinn';
 }
 
-function forskoðaLeik(fixture) {
+function forskoðaLeik(fixture, deildNafn) {
   const staða = sækjaStöðu(fixture);
   const dagur = new Date(fixture.fixture.date);
   const tími = dagur.toLocaleTimeString('is-IS', { hour: '2-digit', minute: '2-digit' });
@@ -27,7 +27,7 @@ function forskoðaLeik(fixture) {
     staða,
     tími: staða === 'live' ? `${fixture.fixture.status.elapsed}'` : staða === 'lokið' ? 'Lokið' : tími,
     dagsetning: dagur,
-    deild: 'Úrvalsdeild KK',
+    deild: deildNafn,
   };
 }
 
@@ -40,9 +40,18 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
 
   async function hlaða() {
-    try {
-      const gögn = await sækjaLeiki(164);
-      setLeikir(gögn.map(forskoðaLeik));
+  try {
+    const [urvals, eitt, kvk] = await Promise.all([
+      sækjaLeiki(164),
+      sækjaLeiki(165),
+      sækjaLeiki(671),
+    ]);
+    const allirLeikir = [
+      ...urvals.map(f => forskoðaLeik(f, 'Úrvalsdeild KK')),
+      ...eitt.map(f => forskoðaLeik(f, '1. Deild KK')),
+      ...kvk.map(f => forskoðaLeik(f, 'Úrvalsdeild KVK')),
+    ];
+    setLeikir(allirLeikir);
     } catch (e) {
       console.error(e);
     } finally {
