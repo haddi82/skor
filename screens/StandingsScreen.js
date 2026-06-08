@@ -2,7 +2,7 @@ import { StyleSheet, Text, View, ScrollView, SafeAreaView, TouchableOpacity, Act
 import { useState, useEffect, useCallback } from 'react';
 import { sækjaStigatoflu } from '../data/api';
 
-export default function StandingsScreen({ onTilbaka }) {
+export default function StandingsScreen({ deild }) {
   const [stigatafla, setStigatafla] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -10,7 +10,7 @@ export default function StandingsScreen({ onTilbaka }) {
 
   async function hlaða() {
     try {
-      const gögn = await sækjaStigatoflu(164);
+      const gögn = await sækjaStigatoflu(deild?.id || 164);
       setStigatafla(gögn);
       setVilla(null);
     } catch (e) {
@@ -22,24 +22,20 @@ export default function StandingsScreen({ onTilbaka }) {
   }
 
   useEffect(() => {
+    setLoading(true);
     hlaða();
-    const interval = setInterval(hlaða, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  }, [deild?.id]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     hlaða();
-  }, []);
+  }, [deild?.id]);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onTilbaka}>
-          <Text style={styles.tilbaka}>← Til baka</Text>
-        </TouchableOpacity>
         <Text style={styles.titill}>Stigatafla</Text>
-        <Text style={styles.deild}>Úrvalsdeild</Text>
+        <Text style={styles.deild}>{deild?.nafn || 'Úrvalsdeild'}</Text>
       </View>
 
       {loading && (
@@ -112,7 +108,6 @@ export default function StandingsScreen({ onTilbaka }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f0f18' },
   header: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  tilbaka: { color: '#1D9E75', fontSize: 16 },
   titill: { color: '#fff', fontSize: 16, fontWeight: '600' },
   deild: { color: 'rgba(255,255,255,0.4)', fontSize: 13 },
   innihald: { flex: 1, paddingHorizontal: 12 },

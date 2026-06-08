@@ -201,8 +201,17 @@ export default function App() {
       )}
 
       {virkurFlip === 'tafla' && (
-        <StandingsScreen deild={virkDeild} />
-      )}
+  <>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.deildaBar}>
+      {DEILDIR_PER_ITHROT[virkIþrótt].map(d => (
+        <TouchableOpacity key={d.id} onPress={() => setVirkDeild(d)} style={[styles.deildaFlip, virkDeild?.id === d.id && styles.deildaFlipVirkur]}>
+          <Text style={[styles.deildaTekst, virkDeild?.id === d.id && styles.deildaTekstVirkur]}>{d.land} {d.nafn}</Text>
+        </TouchableOpacity>
+      ))}
+    </ScrollView>
+    <StandingsScreen deild={virkDeild} />
+  </>
+)}
 
       {virkurFlip === 'dagskra' && (
         <View style={styles.miðja}>
