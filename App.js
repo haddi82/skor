@@ -7,19 +7,19 @@ import { sækjaLeiki } from './data/api';
 
 const ITHROTTIR = [
   { lykill: 'fotbolti', nafn: 'Fótbolti', tákn: '⚽' },
-  { lykill: 'korfubolti', nafn: 'Körfubolti', tákn: '🏀' },
-  { lykill: 'handbolti', nafn: 'Handbolti', tákn: '🤾' },
+  { lykill: 'hm', nafn: 'HM 2026', tákn: '🌍' },
 ];
 
 const DEILDIR_PER_ITHROT = {
   fotbolti: [
-    { id: 164, nafn: 'Besta deild KK', land: '🇮🇸' },
-    { id: 671, nafn: 'Besta deild KVK', land: '🇮🇸' },
+    { id: 164, nafn: 'Besta deildin KK', land: '🇮🇸' },
+    { id: 671, nafn: 'Besta deildin KVK', land: '🇮🇸' },
     { id: 165, nafn: 'Lengjudeild KK', land: '🇮🇸' },
     { id: 166, nafn: '2. deild KK', land: '🇮🇸' },
   ],
-  korfubolti: [],
-  handbolti: [],
+  hm: [
+    { id: 1, nafn: 'Heimsmeistarmót 2026', land: '🌍' },
+  ],
 };
 
 function sækjaStöðu(fixture) {
