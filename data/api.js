@@ -70,3 +70,10 @@ export async function sækjaLið(teamId) {
   const data = await res.json();
   return data.response[0]?.players || [];
 }
+export async function sækjaByrjunarlið(fixtureId) {
+  const res = await fetch(`${BASE_URL}/fixtures/lineups?fixture=${fixtureId}`, {
+    headers: { 'x-apisports-key': API_KEY }
+  });
+  const data = await res.json();
+  return data.response;
+}
